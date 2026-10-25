@@ -211,19 +211,20 @@ function renderDashboard() {
   const now = new Date();
   const weekStart = startOfWeek(now).getTime();
   const thisWeek = db.sessions.filter(s => s.date >= weekStart);
-  const hour = now.getHours();
-  const greeting = hour < 11 ? 'Guten Morgen' : hour < 18 ? 'Hallo' : 'Guten Abend';
+  const last = db.sessions[db.sessions.length - 1];
+  const tonnes = thisWeek.reduce((n, s) => n + sessionVolume(s), 0) / 1000;
 
   view.innerHTML = `
     <header class="page-head">
-      <p class="sub">${now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-      <h1>${greeting} 💪</h1>
+      <p class="eyebrow">${now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · KW ${isoWeek(now)}</p>
+      <h1>${thisWeek.length ? `${thisWeek.length} ${thisWeek.length === 1 ? 'Training' : 'Trainings'} diese Woche` : 'Diese Woche noch kein Training'}</h1>
+      <p class="sub">${last ? `Zuletzt ${esc(last.dayName)} · ${relDay(last.date)}` : 'Noch kein Training gespeichert'}</p>
+      ${weekStrip()}
     </header>
     ${heroCard()}
     <div class="stats">
-      <div class="stat"><div class="val">${thisWeek.length}</div><div class="lbl">Trainings diese Woche</div></div>
       <div class="stat"><div class="val">${thisWeek.reduce((n, s) => n + sessionSets(s), 0)}</div><div class="lbl">Sätze diese Woche</div></div>
-      <div class="stat"><div class="val">${fmtInt(thisWeek.reduce((n, s) => n + sessionVolume(s), 0))}<small style="font-size:15px"> kg</small></div><div class="lbl">Volumen diese Woche</div></div>
+      <div class="stat"><div class="val">${fmtNum(Math.round(tonnes * 10) / 10)}<small> t</small></div><div class="lbl">Volumen diese Woche</div></div>
       <div class="stat"><div class="val">${db.sessions.length}</div><div class="lbl">Trainings gesamt</div></div>
     </div>
     ${muscleBarsCard()}
@@ -241,9 +242,10 @@ function heroCard() {
     const total = a.exercises.reduce((n, e) => n + e.sets.length, 0);
     return `
       <section class="card hero">
-        <p class="sub">Training läuft · seit ${fmtMinutes(Date.now() - a.start)}</p>
+        <div class="hero-top"><span class="eyebrow">Training läuft</span><span class="sub">seit ${fmtMinutes(Date.now() - a.start)}</span></div>
         <h2>${esc(a.dayName)}</h2>
         <p class="sub">${done} von ${total} Sätzen erledigt</p>
+        <div class="hero-progress"><div style="width:${total ? (done / total) * 100 : 0}%"></div></div>
         <a class="btn block" href="#/train">Weiter trainieren</a>
       </section>`;
   }
@@ -252,13 +254,33 @@ function heroCard() {
     return `<section class="card hero"><h2>Noch kein Plan</h2><a class="btn block" href="#/plan">Plan anlegen</a></section>`;
   }
   const last = lastSessionOfDay(day.id);
+  const totalSets = day.exercises.reduce((n, e) => n + e.sets, 0);
   return `
     <section class="card hero">
-      <p class="sub">Nächstes Training</p>
+      <div class="hero-top"><span class="eyebrow">Nächstes Training</span><span class="sub">${last ? 'zuletzt ' + relDay(last.date) : 'noch nie gemacht'}</span></div>
       <h2>${esc(day.name)}</h2>
-      <p class="sub">${day.exercises.length} Übungen · ${last ? 'zuletzt ' + relDay(last.date) : 'noch nie gemacht'}</p>
+      <p class="sub">${day.exercises.length} Übungen · ${totalSets} Sätze</p>
+      <ul class="preview">
+        ${day.exercises.map(ex => {
+          const s = lastPerformance(ex)?.ex.sets[0];
+          return `<li><span>${esc(ex.name)}</span><span>${ex.sets}× · ${s ? `${fmtNum(s.w) || 0} kg × ${s.r}` : 'neu'}</span></li>`;
+        }).join('')}
+      </ul>
       <button class="btn block" data-action="start" data-day="${esc(day.id)}">Training starten</button>
     </section>`;
+}
+
+function weekStrip() {
+  const start = startOfWeek(new Date());
+  const today = startOfDay(new Date());
+  return `<div class="week">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((label, i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const names = db.sessions.filter(s => dayKey(s.date) === dayKey(d)).map(s => s.dayName);
+    const cls = ['wd', names.length ? 'on' : '', +d === +today ? 'today' : '', d > today ? 'future' : ''].join(' ');
+    const tip = d > today ? '' : `data-tip="${esc(names.join(', ') || 'Kein Training')}"`;
+    return `<div class="${cls}" ${tip}><span class="wl">${label}</span><span class="wc">${names.length ? CHECK_ICON : d.getDate()}</span></div>`;
+  }).join('')}</div>`;
 }
 
 function setsPerMuscle(from, to) {

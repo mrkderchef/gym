@@ -1,5 +1,5 @@
 // Offline-Cache. Bei jeder Änderung an der App die Version erhöhen.
-const CACHE = 'gym-v3';
+const CACHE = 'gym-v4';
 const ASSETS = [
   './',
   'index.html',
