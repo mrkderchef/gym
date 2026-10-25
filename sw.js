@@ -1,5 +1,5 @@
 // Offline-Cache. Bei jeder Änderung an der App die Version erhöhen.
-const CACHE = 'gym-v4';
+const CACHE = 'gym-v5';
 const ASSETS = [
   './',
   'index.html',
@@ -7,7 +7,8 @@ const ASSETS = [
   'plan.js',
   'app.js',
   'manifest.webmanifest',
-  'icons/icon.svg',
+  'icons/favicon.png',
+  'icons/cedric-source.jpg',
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',

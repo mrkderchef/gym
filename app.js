@@ -109,6 +109,15 @@ const fmtMinutes = ms => `${Math.max(1, Math.round(ms / 60000))} min`;
 
 /* ---------- UI-Helfer ---------- */
 
+const svgIcon = d => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICONS = {
+  flame: svgIcon('<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'),
+  clock: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  layers: svgIcon('<path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>'),
+  dumbbell: svgIcon('<path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/>'),
+  list: svgIcon('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
+};
+
 function toast(msg) {
   const el = document.createElement('div');
   el.className = 'toast';
@@ -222,11 +231,7 @@ function renderDashboard() {
       ${weekStrip()}
     </header>
     ${heroCard()}
-    <div class="stats">
-      <div class="stat"><div class="val">${thisWeek.reduce((n, s) => n + sessionSets(s), 0)}</div><div class="lbl">Sätze diese Woche</div></div>
-      <div class="stat"><div class="val">${fmtNum(Math.round(tonnes * 10) / 10)}<small> t</small></div><div class="lbl">Volumen diese Woche</div></div>
-      <div class="stat"><div class="val">${db.sessions.length}</div><div class="lbl">Trainings gesamt</div></div>
-    </div>
+    ${statsBento(thisWeek, tonnes)}
     ${muscleBarsCard()}
     ${heatmapCard()}
     ${progressCard()}
@@ -242,45 +247,101 @@ function heroCard() {
     const total = a.exercises.reduce((n, e) => n + e.sets.length, 0);
     return `
       <section class="card hero">
-        <div class="hero-top"><span class="eyebrow">Training läuft</span><span class="sub">seit ${fmtMinutes(Date.now() - a.start)}</span></div>
-        <h2>${esc(a.dayName)}</h2>
-        <p class="sub">${done} von ${total} Sätzen erledigt</p>
-        <div class="hero-progress"><div style="width:${total ? (done / total) * 100 : 0}%"></div></div>
-        <a class="btn block" href="#/train">Weiter trainieren</a>
+        <div class="hero-img">
+          <div class="hero-top"><span class="eyebrow">Training läuft</span><span class="sub">seit ${fmtMinutes(Date.now() - a.start)}</span></div>
+          <div><h2>${esc(a.dayName)}</h2><p class="sub">${done} von ${total} Sätzen erledigt</p></div>
+        </div>
+        <div class="hero-body">
+          <div class="hero-progress"><div style="width:${total ? (done / total) * 100 : 0}%"></div></div>
+          <a class="btn block" href="#/train">Weiter trainieren</a>
+        </div>
       </section>`;
   }
   const day = nextDay();
   if (!day) {
-    return `<section class="card hero"><h2>Noch kein Plan</h2><a class="btn block" href="#/plan">Plan anlegen</a></section>`;
+    return `<section class="card hero"><div class="hero-img"><h2>Noch kein Plan</h2></div><div class="hero-body"><a class="btn block" href="#/plan">Plan anlegen</a></div></section>`;
   }
   const last = lastSessionOfDay(day.id);
   const totalSets = day.exercises.reduce((n, e) => n + e.sets, 0);
   return `
     <section class="card hero">
-      <div class="hero-top"><span class="eyebrow">Nächstes Training</span><span class="sub">${last ? 'zuletzt ' + relDay(last.date) : 'noch nie gemacht'}</span></div>
-      <h2>${esc(day.name)}</h2>
-      <p class="sub">${day.exercises.length} Übungen · ${totalSets} Sätze</p>
-      <ul class="preview">
-        ${day.exercises.map(ex => {
-          const s = lastPerformance(ex)?.ex.sets[0];
-          return `<li><span>${esc(ex.name)}</span><span>${ex.sets}× · ${s ? `${fmtNum(s.w) || 0} kg × ${s.r}` : 'neu'}</span></li>`;
-        }).join('')}
-      </ul>
-      <button class="btn block" data-action="start" data-day="${esc(day.id)}">Training starten</button>
+      <div class="hero-img">
+        <div class="hero-top"><span class="eyebrow">Nächstes Training</span><span class="sub">${last ? 'zuletzt ' + relDay(last.date) : 'noch nie gemacht'}</span></div>
+        <div><h2>${esc(day.name)}</h2><p class="sub">${day.exercises.length} Übungen · ${totalSets} Sätze</p></div>
+      </div>
+      <div class="hero-body">
+        <ul class="preview">
+          ${day.exercises.map(ex => {
+            const s = lastPerformance(ex)?.ex.sets[0];
+            return `<li><span>${esc(ex.name)}</span><span>${ex.sets}× · ${s ? `${fmtNum(s.w) || 0} kg × ${s.r}` : 'neu'}</span></li>`;
+          }).join('')}
+        </ul>
+        <button class="btn block" data-action="start" data-day="${esc(day.id)}">Training starten</button>
+      </div>
     </section>`;
 }
 
+// Wochenleiste: ein Balken pro Tag, Höhe = Sätze an dem Tag
 function weekStrip() {
   const start = startOfWeek(new Date());
   const today = startOfDay(new Date());
-  return `<div class="week">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((label, i) => {
+  const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((label, i) => {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
-    const names = db.sessions.filter(s => dayKey(s.date) === dayKey(d)).map(s => s.dayName);
-    const cls = ['wd', names.length ? 'on' : '', +d === +today ? 'today' : '', d > today ? 'future' : ''].join(' ');
-    const tip = d > today ? '' : `data-tip="${esc(names.join(', ') || 'Kein Training')}"`;
-    return `<div class="${cls}" ${tip}><span class="wl">${label}</span><span class="wc">${names.length ? CHECK_ICON : d.getDate()}</span></div>`;
+    const sessions = db.sessions.filter(s => dayKey(s.date) === dayKey(d));
+    return { label, d, sessions, sets: sessions.reduce((n, s) => n + sessionSets(s), 0) };
+  });
+  const max = Math.max(12, ...days.map(x => x.sets));
+  return `<div class="week">${days.map(({ label, d, sessions, sets }) => {
+    const cls = ['wd', sets ? 'on' : '', +d === +today ? 'today' : '', d > today ? 'future' : ''].join(' ');
+    const tip = d > today ? '' : `data-tip="${esc(sessions.length ? `${sessions.map(s => s.dayName).join(', ')} · ${sets} Sätze` : 'Kein Training')}"`;
+    return `
+      <div class="${cls}" ${tip}>
+        <span class="wl">${label}</span>
+        <span class="wt"><span class="wf" style="height:${(sets / max) * 100}%"></span></span>
+        <span class="wn">${d.getDate()}</span>
+      </div>`;
   }).join('')}</div>`;
+}
+
+// Wochen in Folge mit mindestens einem Training (die laufende Woche zählt, sobald trainiert wurde)
+function weekStreak() {
+  const wk = startOfWeek(new Date());
+  const has = start => db.sessions.some(s => s.date >= +start && s.date < +start + 7 * DAY_MS);
+  if (!has(wk)) wk.setDate(wk.getDate() - 7);
+  let streak = 0;
+  while (has(wk)) {
+    streak++;
+    wk.setDate(wk.getDate() - 7);
+  }
+  return streak;
+}
+
+function statsBento(thisWeek, tonnes) {
+  const sets = thisWeek.reduce((n, s) => n + sessionSets(s), 0);
+  const recent = db.sessions.slice(-10);
+  const maxVol = Math.max(1, ...recent.map(sessionVolume));
+  const streak = weekStreak();
+  return `
+    <div class="bento">
+      <div class="bento-big">
+        <span class="pill">Sätze diese Woche</span>
+        <div class="big-num">${sets}</div>
+        <p>${thisWeek.length ? `in ${thisWeek.length} ${thisWeek.length === 1 ? 'Training' : 'Trainings'} · Ø ${fmtNum(Math.round((sets / thisWeek.length) * 10) / 10)} pro Training` : 'Noch keine Sätze diese Woche'}</p>
+      </div>
+      <div class="bento-card">
+        <span class="eyebrow">Volumen</span>
+        <div class="num">${fmtNum(Math.round(tonnes * 10) / 10)}<small> t</small></div>
+        <div class="spark">
+          ${recent.map(s => `<span style="height:${Math.max(8, (sessionVolume(s) / maxVol) * 100)}%" data-tip="${esc(s.dayName)} · ${fmtShortDate(s.date)} · ${fmtInt(sessionVolume(s))} kg"></span>`).join('') || '<em class="sub">noch keine Daten</em>'}
+        </div>
+      </div>
+      <div class="bento-card streak ${streak ? 'lit' : ''}">
+        ${ICONS.flame}
+        <div class="num">${streak}<small> ${streak === 1 ? 'Woche' : 'Wochen'}</small></div>
+        <span class="sub">Serie · ${db.sessions.length} gesamt</span>
+      </div>
+    </div>`;
 }
 
 function setsPerMuscle(from, to) {
@@ -682,8 +743,14 @@ function renderSessionDetail(id) {
     <header class="page-head">
       <a href="#/history" class="sub" style="text-decoration:none">‹ Verlauf</a>
       <h1>${esc(s.dayName)}</h1>
-      <p class="sub">${fmtDate(s.date)} · ${fmtMinutes(s.duration || 0)} · ${sessionSets(s)} Sätze · ${fmtInt(sessionVolume(s))} kg Volumen</p>
+      <p class="sub">${fmtDate(s.date)}</p>
     </header>
+    <section class="summary">
+      <div class="sum-row"><span class="ic c1">${ICONS.clock}</span><span>Dauer</span><b>${fmtMinutes(s.duration || 0)}</b></div>
+      <div class="sum-row"><span class="ic c2">${ICONS.list}</span><span>Übungen</span><b>${s.exercises.length}</b></div>
+      <div class="sum-row"><span class="ic c3">${ICONS.layers}</span><span>Sätze</span><b>${sessionSets(s)}</b></div>
+      <div class="sum-row"><span class="ic c4">${ICONS.dumbbell}</span><span>Volumen</span><b>${fmtInt(sessionVolume(s))}<small> kg</small></b></div>
+    </section>
     <section class="card">
       ${s.exercises.map(e => `
         <div class="hist-ex">

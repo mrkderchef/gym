@@ -143,57 +143,108 @@ button, .btn {
   font-weight: 600;
 }
 
-/* Wochenleiste */
+.ico { width: 20px; height: 20px; flex-shrink: 0; }
+
+/* Wochenleiste (nach „Weekly Fitness Card“, 21st.dev) */
 .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 18px; }
-.wd { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wd {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 9px 0 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+}
 .wd .wl { font-size: 11px; font-weight: 600; color: var(--muted); }
-.wd .wc {
-  width: 38px; height: 38px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--surface); border: 1px solid var(--border);
-  font-size: 14px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums;
-}
-.wd .wc svg { width: 18px; height: 18px; fill: currentColor; }
-.wd.on .wc { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 4px 14px -4px var(--accent); }
-.wd.today .wl { color: var(--accent); }
-.wd.today:not(.on) .wc { border: 2px solid var(--accent); color: var(--text); }
-.wd.future .wc { background: transparent; opacity: 0.5; }
+.wd .wt { width: 58%; height: 52px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: flex-end; overflow: hidden; }
+.wd .wf { width: 100%; background: var(--accent); border-radius: 6px; }
+.wd .wn { font-size: 12px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.wd.today { border-color: var(--accent); }
+.wd.today .wl, .wd.today .wn { color: var(--accent); }
+.wd.future { opacity: 0.45; }
 
-/* Stat tiles */
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
-.stat .val { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.stat .val small { font-size: 14px; font-weight: 600; color: var(--muted); }
-.stat .lbl { color: var(--muted); font-size: 12px; line-height: 1.3; }
-
-/* Next workout hero */
-.hero {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(150deg, #3987e5 0%, #1c5cab 55%, #104281 100%);
-  color: #fff;
-  border: 0;
-  padding: 20px;
-  box-shadow: 0 16px 40px -18px rgba(42, 120, 214, 0.75);
+/* Kennzahlen als Bento (nach „Stats Bento“ + „Streak Badge“, 21st.dev) */
+.bento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.bento-big {
+  grid-row: span 2;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--text); color: var(--bg);
+  border-radius: 20px; padding: 16px;
 }
-.hero::after {
-  content: '';
-  position: absolute; right: -60px; top: -60px;
-  width: 200px; height: 200px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%);
+.bento-big::before {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--bg) 14%, transparent) 7px 8px);
+  -webkit-mask-image: radial-gradient(circle at 100% 0, #000, transparent 65%);
+  mask-image: radial-gradient(circle at 100% 0, #000, transparent 65%);
   pointer-events: none;
 }
-.hero .sub { color: rgba(255,255,255,0.78); }
-.hero .eyebrow { color: rgba(255,255,255,0.78); margin: 0; }
+.pill {
+  align-self: flex-start; position: relative;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 4px 8px; border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 10%, transparent);
+  color: color-mix(in srgb, var(--bg) 70%, var(--text));
+}
+.big-num { position: relative; font-size: 64px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin: auto 0 10px; padding-top: 18px; font-variant-numeric: tabular-nums; }
+.bento-big p { position: relative; font-size: 13px; line-height: 1.35; color: color-mix(in srgb, var(--bg) 65%, var(--text)); }
+.bento-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bento-card .eyebrow { margin: 0; }
+.bento-card .num { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bento-card .num small { font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 6px; }
+.spark span { flex: 1; max-width: 8px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 55%, var(--surface)); }
+.spark span:last-child { background: var(--accent); }
+.spark em { font-style: normal; font-size: 12px; }
+.streak .ico { width: 26px; height: 26px; color: var(--muted); }
+.streak.lit .ico { color: #fab219; fill: color-mix(in srgb, #fab219 25%, transparent); }
+.streak .sub { font-size: 12px; }
+
+/* Nächstes Training – Foto-Karte (nach „Workout Summary Card“, 21st.dev) */
+.hero {
+  padding: 0;
+  overflow: hidden;
+  background: #121211;
+  color: #fff;
+  border: 1px solid #2a2a28;
+  border-radius: 22px;
+  box-shadow: 0 22px 44px -26px rgba(0, 0, 0, 0.8);
+}
+.hero-img {
+  min-height: 210px;
+  padding: 16px 18px 6px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.1) 30%, rgba(18,18,17,0.7) 70%, #121211 100%),
+    url(icons/cedric-source.jpg) center 18% / cover;
+}
+.hero .sub { color: rgba(255,255,255,0.72); }
+.hero .eyebrow { color: rgba(255,255,255,0.85); margin: 0; }
 .hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.hero h2 { font-size: 26px; letter-spacing: -0.02em; margin: 6px 0 2px; }
-.hero .btn { background: #fff; color: #104281; margin-top: 16px; min-height: 50px; font-size: 16px; }
-.preview { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,0.2); display: grid; gap: 8px; font-size: 14px; }
-.preview li { display: flex; justify-content: space-between; gap: 12px; }
+.hero h2 { font-size: 30px; letter-spacing: -0.03em; margin: 0 0 2px; }
+.hero-body { padding: 8px 18px 18px; }
+.hero .btn { background: #fff; color: #0b0b0b; margin-top: 16px; min-height: 52px; font-size: 16px; border-radius: 14px; }
+.preview { list-style: none; margin: 6px 0 0; padding: 0; display: grid; font-size: 14px; }
+.preview li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.09); }
+.preview li:first-child { border-top: 0; }
 .preview li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.preview li span:last-child { color: rgba(255,255,255,0.75); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hero-progress { height: 6px; background: rgba(255,255,255,0.22); border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.preview li span:last-child { color: rgba(255,255,255,0.65); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hero-progress { height: 6px; background: rgba(255,255,255,0.18); border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .hero-progress > div { height: 100%; background: #fff; border-radius: 3px; }
+
+/* Zusammenfassung eines Trainings */
+.summary { display: grid; gap: 8px; margin-bottom: 14px; }
+.sum-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 8px 16px 8px 8px;
+  font-size: 15px; font-weight: 500;
+}
+.sum-row b { margin-left: auto; font-size: 17px; font-variant-numeric: tabular-nums; }
+.sum-row b small { font-size: 13px; color: var(--muted); font-weight: 500; }
+.ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.ic .ico { width: 18px; height: 18px; }
+.ic.c1 { color: #9085e9; background: color-mix(in srgb, #9085e9 18%, transparent); }
+.ic.c2 { color: #3987e5; background: color-mix(in srgb, #3987e5 18%, transparent); }
+.ic.c3 { color: #199e70; background: color-mix(in srgb, #199e70 18%, transparent); }
+.ic.c4 { color: #d95926; background: color-mix(in srgb, #d95926 18%, transparent); }
 
 /* Muscle bars */
 .bars { display: grid; gap: 8px; }
