@@ -34,6 +34,7 @@ const parseNum = v => {
 };
 const fmtNum = n => (n == null ? '' : String(Math.round(n * 100) / 100).replace('.', ','));
 const fmtInt = n => Math.round(n).toLocaleString('de-DE');
+const setsLabel = n => `${n} ${n === 1 ? 'Satz' : 'Sätze'}`;
 const muscleName = m => MUSCLES[m] || m || '–';
 
 const findDay = id => db.plan.days.find(d => d.id === id);
@@ -523,13 +524,11 @@ function startSession(dayId) {
         exId: ex.id,
         name: ex.name,
         muscle: ex.muscle,
-        target: ex.reps,
-        sets: Array.from({ length: ex.sets }, (_, i) => ({
-          // Gewicht immer vom letzten Training übernehmen
-          w: (prev[i] || prev[prev.length - 1])?.w ?? null,
-          r: null,
-          done: false,
-        })),
+        sets: Array.from({ length: ex.sets }, (_, i) => {
+          // Gewicht und Wiederholungen immer vom letzten Training übernehmen
+          const p = prev[i] || prev[prev.length - 1];
+          return { w: p?.w ?? null, r: p?.r ?? null, done: false };
+        }),
       };
     }),
   };
@@ -573,7 +572,7 @@ function exerciseCard(e, i) {
       <div class="ex-head">
         <div style="min-width:0">
           <h3>${esc(e.name)}</h3>
-          <div class="last"><span class="tag">${esc(muscleName(e.muscle))}</span> ${e.sets.length}×${e.target ?? '–'}</div>
+          <div class="last"><span class="tag">${esc(muscleName(e.muscle))}</span> ${setsLabel(e.sets.length)}</div>
         </div>
         <div class="adjust">
           <button class="icon-btn" style="width:auto;padding:0 10px;font-size:14px" data-action="wAll" data-ex="${i}" data-d="-1">−${fmtNum(WEIGHT_STEP)}</button>
@@ -588,7 +587,7 @@ function exerciseCard(e, i) {
             <span class="n">${j + 1}</span>
             <input type="text" inputmode="decimal" autocomplete="off" placeholder="kg" value="${fmtNum(s.w)}" data-input="w" data-ex="${i}" data-set="${j}">
             <span class="x">×</span>
-            <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="${e.target ?? ''}" value="${s.r ?? ''}" data-input="r" data-ex="${i}" data-set="${j}">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Wdh" value="${s.r ?? ''}" data-input="r" data-ex="${i}" data-set="${j}">
             <button class="check" data-action="toggle" data-ex="${i}" data-set="${j}" aria-label="Satz erledigt">${CHECK_ICON}</button>
           </div>`).join('')}
       </div>
@@ -626,7 +625,7 @@ async function finishSession() {
         exId: e.exId,
         name: e.name,
         muscle: e.muscle,
-        sets: e.sets.filter(s => s.done).map(s => ({ w: s.w ?? 0, r: s.r ?? e.target ?? 0 })),
+        sets: e.sets.filter(s => s.done).map(s => ({ w: s.w ?? 0, r: s.r ?? 0 })),
       }))
       .filter(e => e.sets.length),
   };
@@ -687,7 +686,7 @@ function renderPlan() {
         <div class="card-head"><h2>${esc(d.name)}</h2><a class="btn small" href="#/plan/day/${encodeURIComponent(d.id)}">Bearbeiten</a></div>
         ${d.exercises.map(e => `
           <div class="plan-ex">
-            <div><div>${esc(e.name)}</div><div class="meta">${e.sets} × ${e.reps} · ${esc(muscleName(e.muscle))}</div></div>
+            <div><div>${esc(e.name)}</div><div class="meta">${setsLabel(e.sets)} · ${esc(muscleName(e.muscle))}</div></div>
           </div>`).join('') || '<p class="sub">Keine Übungen</p>'}
       </section>`).join('')}
     <button class="btn block" data-action="addDay">+ Trainingstag</button>
@@ -721,7 +720,7 @@ function renderPlanDay(dayId) {
       <div class="card-head"><h2>Übungen</h2></div>
       ${d.exercises.map((e, i) => `
         <div class="plan-ex">
-          <div><div>${esc(e.name)}</div><div class="meta">${e.sets} × ${e.reps} · ${esc(muscleName(e.muscle))}</div></div>
+          <div><div>${esc(e.name)}</div><div class="meta">${setsLabel(e.sets)} · ${esc(muscleName(e.muscle))}</div></div>
           <div class="tools">
             <button class="icon-btn" data-action="moveEx" data-day="${esc(d.id)}" data-i="${i}" data-d="-1" aria-label="Nach oben" ${i ? '' : 'disabled'}>↑</button>
             <button class="icon-btn" data-action="moveEx" data-day="${esc(d.id)}" data-i="${i}" data-d="1" aria-label="Nach unten" ${i < d.exercises.length - 1 ? '' : 'disabled'}>↓</button>
@@ -737,7 +736,7 @@ function renderPlanDay(dayId) {
 function renderExerciseForm(dayId, exId) {
   const d = findDay(dayId);
   if (!d) { location.hash = '#/plan'; return; }
-  const e = d.exercises.find(x => x.id === exId) || { id: 'new', name: '', muscle: 'brust', sets: 3, reps: 10 };
+  const e = d.exercises.find(x => x.id === exId) || { id: 'new', name: '', muscle: 'brust', sets: 2 };
   view.innerHTML = `
     <header class="page-head">
       <a href="#/plan/day/${encodeURIComponent(d.id)}" class="sub" style="text-decoration:none">‹ ${esc(d.name)}</a>
@@ -749,8 +748,7 @@ function renderExerciseForm(dayId, exId) {
         <label class="field full">Muskelgruppe
           <select name="muscle">${Object.entries(MUSCLES).map(([k, v]) => `<option value="${k}" ${k === e.muscle ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         </label>
-        <label class="field">Sätze<input type="number" name="sets" min="1" max="10" inputmode="numeric" required value="${e.sets}"></label>
-        <label class="field">Wiederholungen<input type="number" name="reps" min="1" max="100" inputmode="numeric" required value="${e.reps}"></label>
+        <label class="field full">Standard-Sätze<input type="number" name="sets" min="1" max="10" inputmode="numeric" required value="${e.sets}"></label>
       </div>
       <div class="row-btns">
         <button class="btn primary" type="submit" style="flex:1">Speichern</button>
@@ -764,8 +762,7 @@ function renderExerciseForm(dayId, exId) {
     const data = {
       name: String(f.get('name')).trim(),
       muscle: f.get('muscle'),
-      sets: Math.max(1, parseInt(f.get('sets'), 10) || 3),
-      reps: Math.max(1, parseInt(f.get('reps'), 10) || 10),
+      sets: Math.max(1, parseInt(f.get('sets'), 10) || 2),
     };
     if (!data.name) return;
     if (e.id === 'new') d.exercises.push({ id: uid(), ...data });
@@ -824,8 +821,12 @@ const actions = {
   toggle(el) {
     const e = db.active.exercises[el.dataset.ex];
     const s = e.sets[el.dataset.set];
+    if (!s.done && s.r == null) {
+      view.querySelector(`input[data-input="r"][data-ex="${el.dataset.ex}"][data-set="${el.dataset.set}"]`)?.focus();
+      toast('Erst Wiederholungen eintragen');
+      return;
+    }
     s.done = !s.done;
-    if (s.done && s.r == null && e.target) s.r = e.target;
     saveDb();
     renderActiveSession();
   },
@@ -839,7 +840,7 @@ const actions = {
   addSet(el) {
     const e = db.active.exercises[el.dataset.ex];
     const last = e.sets[e.sets.length - 1];
-    e.sets.push({ w: last?.w ?? null, r: null, done: false });
+    e.sets.push({ w: last?.w ?? null, r: last?.r ?? null, done: false });
     saveDb();
     renderActiveSession();
   },
